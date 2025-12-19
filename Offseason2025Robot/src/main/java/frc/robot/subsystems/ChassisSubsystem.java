@@ -23,6 +23,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
@@ -108,14 +109,11 @@ public class ChassisSubsystem extends SubsystemBase {
       new SwerveModuleState(0, Rotation2d.fromDegrees(0))
   };
 
-  private LimelightUtil limelightLeft;
-  private LimelightUtil limelightRight;
-
   // Sysid Rotinue
   SysIdRoutine routine;
 
   public ChassisSubsystem() {
-    this.frontCam = new AtCamUtil("camera-front", new Pose3d(1,1,1,new Rotation3d(0,0,0)));
+    this.frontCam = new AtCamUtil("Camera-front", new Transform3d(1, 1, 1, new Rotation3d(0, 0, 0)));
     // Modules Initilization:
     this.swerve_modules[Wheels.LEFT_FRONT.ordinal()] = new SwerveModule(
         Constants.ChassisConstants.kLeftFrontDriveID,
@@ -154,13 +152,9 @@ public class ChassisSubsystem extends SubsystemBase {
 
     // Robot starting position for odometry
     startingPos = new Pose2d(1.3, 5.52, Rotation2d.fromDegrees(0));
-    
-
 
     // Field initlization
     field = new Field2d();
-    this.limelightLeft = new LimelightUtil(ChassisConstants.reefCam);
-    this.limelightRight = new LimelightUtil("limelight-source");
 
     llField = new Field2d();
     SmartDashboard.putData("ll field", llField);
@@ -280,6 +274,9 @@ public class ChassisSubsystem extends SubsystemBase {
   public void zeroHeading() {
     this.imu.reset();
   }
+  public AtCamUtil getFrontCam() {
+    return this.frontCam;
+  }
 
   /**
    * Returns the heading of the robot
@@ -344,7 +341,7 @@ public class ChassisSubsystem extends SubsystemBase {
             : chassisSpeeds);
   }
   // public InstantCommand drive(){
-  //   return new InstantCommand(()->drive(0,0,0,false),this);
+  // return new InstantCommand(()->drive(0,0,0,false),this);
   // }
 
   /**
@@ -353,7 +350,8 @@ public class ChassisSubsystem extends SubsystemBase {
    * @param speeds The desired chassisSpeeds object for module velocities
    */
   public void runVelc(ChassisSpeeds speeds) {
-    ChassisSpeeds discSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(ChassisSpeeds.discretize(speeds, 0.02), getRotation2d());
+    ChassisSpeeds discSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(ChassisSpeeds.discretize(speeds, 0.02),
+        getRotation2d());
     // ChassisSpeeds discSpeeds = ChassisSpeeds.discretize(speeds, 0.01);
 
     this.swerveModuleStates = ChassisConstants.kDriveKinematics.toSwerveModuleStates(discSpeeds);
@@ -426,7 +424,8 @@ public class ChassisSubsystem extends SubsystemBase {
   public void resetOdometry(Pose2d pose) {
     System.out.println("resets");
     this.poseEstimator.resetPose(pose);
-    // this.poseEstimator.resetPosition(getRotation2d().unaryMinus(), getModPositions(), pose);
+    // this.poseEstimator.resetPosition(getRotation2d().unaryMinus(),
+    // getModPositions(), pose);
   }
 
   /**
@@ -460,49 +459,35 @@ public class ChassisSubsystem extends SubsystemBase {
     return this.swerveModuleStates;
   }
 
-
-  public LimelightUtil getLeftCam() {
-    return this.limelightLeft;
-  }
-
-  public LimelightUtil getRightCam() {
-    return limelightRight;
-  }
-
   /**
-   * Update pose estimator using vision data from the limelight
+   * Update pose estimator using vision data from the At Cam
    */
   private void updatePoseEstimatorWithVisionBotPose() {
-    Pose2d visionBotPoseReefLeft = this.limelightLeft.getPoseFromCamera();
-    Pose2d visionBotPoseSource = this.limelightRight.getPoseFromCamera();
+    Pose2d visionBotPose = this.frontCam.getPoseFromCamera();
     double xyStds;
     double degStds;
 
-    if (visionBotPoseReefLeft.getX() != 0.0 && this.limelightLeft.hasValidTarget()) {
-      xyStds = 0.5 * (1 / Math.pow(limelightLeft.distanceFromTargetMeters(), 2));
+    if (visionBotPose.getX() != 0.0 && this.frontCam.hasValidTarget()) {
+      xyStds = 0.5 * (1 / Math.pow(frontCam.distanceFromTargetMeters(), 2));
       degStds = 6;
 
       poseEstimator.setVisionMeasurementStdDevs(
           VecBuilder.fill(xyStds, xyStds, Units.degreesToRadians(degStds)));
-      poseEstimator.addVisionMeasurement(visionBotPoseReefLeft,
-          Timer.getFPGATimestamp() - (limelightLeft.getCameraTimeStampSec()));
+      poseEstimator.addVisionMeasurement(visionBotPose,
+          Timer.getFPGATimestamp() - (frontCam.getCameraTimeStampSec()));
     }
 
+    // if has 2 cams - this one is for limelight
+    // if (visionBotPoseSource.getX() != 0.0 &&
+    // this.limelightRight.hasValidTarget()) {
+    // xyStds = 0.5 * (1 / Math.pow(limelightRight.distanceFromTargetMeters(), 2));
+    // degStds = 6;
 
-
-    if (visionBotPoseSource.getX() != 0.0 && this.limelightRight.hasValidTarget()) {
-      xyStds = 0.5 * (1 / Math.pow(limelightRight.distanceFromTargetMeters(), 2));
-      degStds = 6;
-
-      poseEstimator.setVisionMeasurementStdDevs(
-          VecBuilder.fill(xyStds, xyStds, Units.degreesToRadians(degStds)));
-      poseEstimator.addVisionMeasurement(visionBotPoseSource,
-          Timer.getFPGATimestamp() - (this.limelightRight.getCameraTimeStampSec()));
-    }
-
+    // poseEstimator.setVisionMeasurementStdDevs(
+    // VecBuilder.fill(xyStds, xyStds, Units.degreesToRadians(degStds)));
+    // poseEstimator.addVisionMeasurement(visionBotPoseSource,
+    // Timer.getFPGATimestamp() - (this.limelightRight.getCameraTimeStampSec()));
   }
-
-
 
   private void initHolonomicDriver() {
     this.controller = new HolonomicDriveController(
@@ -558,9 +543,6 @@ public class ChassisSubsystem extends SubsystemBase {
       }
     }
 
-    
-
-
     setModuleStates(this.swerveModuleStates);
 
     updateSwervePositions();
@@ -572,9 +554,11 @@ public class ChassisSubsystem extends SubsystemBase {
     // Timer.getFPGATimestamp() - (this.limelightUtil.getCameraTimeStampSec()));
     // }
     this.field.setRobotPose(this.poseEstimator.getEstimatedPosition());
-    // this.llField.setRobotPose(this.limelightUtil.getPoseFromCamera());
-
-    SmartDashboard.putBoolean("is atCam connected",frontCam.isConnected());
+    frontCam.updateResult();
+    SmartDashboard.putBoolean(frontCam.getName()+"/connected", frontCam.isConnected());
+    SmartDashboard.putBoolean(frontCam.getName()+"/has valid target", frontCam.hasValidTarget());
+    SmartDashboard.putNumber(frontCam.getName()+"/tag ID", frontCam.getID());
+    SmartDashboard.putNumber(frontCam.getName()+"/distance from target", frontCam.getDistanceToTarget());
 
     SmartDashboard.putNumber("ChassisSubsystem/Gyro Yaw", getYaw());
 
@@ -634,8 +618,6 @@ public class ChassisSubsystem extends SubsystemBase {
 
     SmartDashboard.putNumber("match time", DriverStation.getMatchTime());
     SmartDashboard.putNumber("battary voltage", RobotController.getBatteryVoltage());
-    SmartDashboard.putString("game message", DriverStation.getGameSpecificMessage());
-    SmartDashboard.putNumber("left camera target yaw",this.getLeftCam().getTargetYaw());
-    SmartDashboard.putNumber("right camera target yaw",this.getRightCam().getTargetYaw());
+
   }
 }

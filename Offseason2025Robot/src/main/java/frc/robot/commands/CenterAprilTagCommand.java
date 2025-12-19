@@ -26,7 +26,7 @@ public class CenterAprilTagCommand extends Command {
     public CenterAprilTagCommand(ChassisSubsystem chassisSubsystem, boolean leftCam) {
         this.chassisSubsystem = chassisSubsystem;
         this.leftCam = leftCam;
-        this.cam = leftCam? this.chassisSubsystem.getLeftCam():this.chassisSubsystem.getRightCam();
+        // this.cam = leftCam? this.chassisSubsystem.getLeftCam():this.chassisSubsystem.getRightCam();
         addRequirements(chassisSubsystem);
 
         this.txSetPointLeft = -3.565;

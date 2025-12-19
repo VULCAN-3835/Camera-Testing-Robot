@@ -25,7 +25,7 @@ public class FaceAprilTagCommand extends Command {
   public FaceAprilTagCommand(ChassisSubsystem chassisSubsystem,boolean leftCam) {
     this.chassisSubsystem = chassisSubsystem;
     this.leftCam = leftCam;
-    this.cam = leftCam? this.chassisSubsystem.getLeftCam():this.chassisSubsystem.getRightCam();
+    // this.cam =this.chassisSubsystem.getLeftCam():this.chassisSubsystem.getRightCam();
     addRequirements(chassisSubsystem);
 
     
@@ -51,17 +51,17 @@ public class FaceAprilTagCommand extends Command {
   @Override
   public void execute() {
 
-        double rotVelocity = -yawController.calculate(this.cam.getTargetYaw());
-        //rotVelocity *= leftCam? -1:1;
+        // double rotVelocity = -yawController.calculate(this.cam.getTargetYaw());
+        // //rotVelocity *= leftCam? -1:1;
         
-        SmartDashboard.putNumber("CMD/yaw velo", rotVelocity);
-        SmartDashboard.putNumber("CMD/curr yaw", this.cam.getTargetYaw());
-        SmartDashboard.putNumber("CMD/ yaw error", yawController.getError());
-        SmartDashboard.putNumber("CMD/error der yaw", yawController.getErrorDerivative());
-        SmartDashboard.putNumber("CMD/yaw setpoint", yawController.getSetpoint());
-        SmartDashboard.putBoolean("CMD/yawController.atSetpoint()", yawController.atSetpoint());
+        // SmartDashboard.putNumber("CMD/yaw velo", rotVelocity);
+        // SmartDashboard.putNumber("CMD/curr yaw", this.cam.getTargetYaw());
+        // SmartDashboard.putNumber("CMD/ yaw error", yawController.getError());
+        // SmartDashboard.putNumber("CMD/error der yaw", yawController.getErrorDerivative());
+        // SmartDashboard.putNumber("CMD/yaw setpoint", yawController.getSetpoint());
+        // SmartDashboard.putBoolean("CMD/yawController.atSetpoint()", yawController.atSetpoint());
         
-        this.chassisSubsystem.drive(0, 0, rotVelocity, false);
+        // this.chassisSubsystem.drive(0, 0, rotVelocity, false);
   }
 
   // Called once the command ends or is interrupted.
