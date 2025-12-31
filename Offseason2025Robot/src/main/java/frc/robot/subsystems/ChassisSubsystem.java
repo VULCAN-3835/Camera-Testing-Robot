@@ -113,7 +113,6 @@ public class ChassisSubsystem extends SubsystemBase {
   SysIdRoutine routine;
 
   public ChassisSubsystem() {
-    this.frontCam = new AtCamUtil("Camera-front", new Transform3d(1, 1, 1, new Rotation3d(0, 0, 0)));
     // Modules Initilization:
     this.swerve_modules[Wheels.LEFT_FRONT.ordinal()] = new SwerveModule(
         Constants.ChassisConstants.kLeftFrontDriveID,
@@ -164,6 +163,9 @@ public class ChassisSubsystem extends SubsystemBase {
     // Update swerve position and heading at build
     updateSwervePositions();
     zeroHeading();
+
+    this.frontCam = new AtCamUtil("camera 1", new Transform3d(0, 0.3, 0.425, new Rotation3d(0, 0, 0)),this.getRotation2d());
+
 
     // Initilizing a pose estimator
     this.poseEstimator = new SwerveDrivePoseEstimator(ChassisConstants.kDriveKinematics,
@@ -515,7 +517,6 @@ public class ChassisSubsystem extends SubsystemBase {
         List.of(currentPose2dHolonomic, holonomicSetPoint), trajectoryConfig));
   }
 
-  // @Tal: Either you build a command for every pose2d, or it wouldn't work
   public InstantCommand driveToPose2d(Pose2d pose2d) {
     return new InstantCommand(() -> driveTo(pose2d));
   }
@@ -549,16 +550,18 @@ public class ChassisSubsystem extends SubsystemBase {
     this.poseEstimator.update(getRotation2d(), getModPositions());
     updatePoseEstimatorWithVisionBotPose();
 
-    // if (this.limelightUtil.hasValidTarget()) {
-    // this.poseEstimator.addVisionMeasurement(this.limelightUtil.getPoseFromCamera(),
-    // Timer.getFPGATimestamp() - (this.limelightUtil.getCameraTimeStampSec()));
-    // }
-    this.field.setRobotPose(this.poseEstimator.getEstimatedPosition());
+    if (this.frontCam.hasValidTarget()) {
+      this.poseEstimator.addVisionMeasurement(this.frontCam.getPoseFromCamera(),
+      Timer.getFPGATimestamp() - (this.frontCam.getCameraTimeStampSec()));
+    }
+    // this.field.setRobotPose(this.poseEstimator.getEstimatedPosition());
+    this.field.setRobotPose(this.frontCam.getPoseFromCamera());
     frontCam.updateResult();
     SmartDashboard.putBoolean(frontCam.getName()+"/connected", frontCam.isConnected());
     SmartDashboard.putBoolean(frontCam.getName()+"/has valid target", frontCam.hasValidTarget());
     SmartDashboard.putNumber(frontCam.getName()+"/tag ID", frontCam.getID());
     SmartDashboard.putNumber(frontCam.getName()+"/distance from target", frontCam.getDistanceToTarget());
+
 
     SmartDashboard.putNumber("ChassisSubsystem/Gyro Yaw", getYaw());
 
